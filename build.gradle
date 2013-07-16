@@ -1,25 +1,16 @@
 apply plugin: 'java'
-apply plugin: 'gradle-one-jar'
 apply plugin: 'application'
 
 // Use Java 7 by default
 sourceCompatibility = '1.7'
 targetCompatibility = '1.7'
 
-// UTF-8 should be standard by now. So use it!
-[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
-
 // The main class of the application
 mainClassName = 'com.example.helloworld.HelloWorldService'
 
-// Add Gradle OneJar Plugin, see https://github.com/rholder/gradle-one-jar
 buildscript {
     repositories {
         mavenCentral()
-    }
-
-    dependencies {
-        classpath 'com.github.rholder:gradle-one-jar:1.0.3'
     }
 }
 
@@ -42,21 +33,32 @@ dependencies {
     )
 }
 
-// Configure the oneJar task
-task oneJar(type: OneJar) {
-    mainClass = mainClassName
-}
-
 // Configure the run task to start the Dropwizard service
 run {
     args 'server', './src/dist/config/helloworld.yml'
 
 }
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '1.4'
+// Create the executable jar and exclude some certificates
+jar {
+
+    manifest {
+        attributes "Implementation-Title": "DropWizard Quickstart"
+        attributes "Main-Class" : mainClassName
+    }
+
+    // remove the security files (from mail.jar / activation.jar) so that the jar will be executable.
+    doFirst {
+        from (configurations.runtime.resolve().collect { it.isDirectory() ? it : zipTree(it) }) {
+            exclude 'META-INF/MANIFEST.MF'
+            exclude 'META-INF/*.SF'
+            exclude 'META-INF/*.DSA'
+            exclude 'META-INF/*.RSA'
+        }
+    }
 }
 
-artifacts {
-    oneJar
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.6'
 }
